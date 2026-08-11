@@ -75,7 +75,11 @@ export function validateStep(
 
   // Extract only the fields this step's schema cares about, so that
   // partially-filled fields from later steps don't trigger errors.
-  const stepShape = step.schema.shape as Record<string, z.ZodTypeAny>;
+  let baseSchema: z.ZodTypeAny = step.schema as any;
+  while (baseSchema instanceof z.ZodEffects) {
+    baseSchema = baseSchema.innerType();
+  }
+  const stepShape = (baseSchema as z.ZodObject<any>).shape as Record<string, z.ZodTypeAny>;
   const stepData: Record<string, unknown> = {};
   for (const key of Object.keys(stepShape)) {
     stepData[key] = (formData as Record<string, unknown>)[key];

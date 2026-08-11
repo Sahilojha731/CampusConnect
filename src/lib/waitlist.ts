@@ -20,6 +20,7 @@ export type CancelResult =
  */
 export interface EventRsvpState {
   max_attendees: number | null;
+  is_resume_required: boolean;
   attending_count: number;
   waitlist_count: number;
   is_full: boolean;
@@ -40,6 +41,7 @@ export async function joinEventOrWaitlist(eventId: string, userId: string): Prom
   const { data, error } = await supabase.rpc("join_event_or_waitlist", {
     p_event_id: eventId,
     p_user_id: userId,
+    p_resume_path: resumePath ?? null,
   });
 
   if (error) {

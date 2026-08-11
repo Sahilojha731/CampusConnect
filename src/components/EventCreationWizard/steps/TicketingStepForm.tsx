@@ -51,6 +51,17 @@ export function TicketingStepForm() {
         </Label>
       </div>
 
+      <div className="flex items-center space-x-2 mt-4">
+        <Checkbox
+          id="isResumeRequired"
+          checked={formData.isResumeRequired}
+          onCheckedChange={(checked) => updateFormData({ isResumeRequired: checked === true })}
+        />
+        <Label htmlFor="isResumeRequired" className="cursor-pointer">
+          Require resume during RSVP
+        </Label>
+      </div>
+
       {formData.isPaid && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
