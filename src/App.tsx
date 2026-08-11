@@ -27,10 +27,30 @@ import MaintenancePage from "./components/MaintenancePage";
 import { CommandPaletteProvider } from "@/components/CommandPaletteProvider";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
+// Pages
+import Index from "./routes/index";
+import Auth from "./routes/auth";
+import Certificates from "./routes/certificates";
+import ClubsIndex from "./routes/clubs.index";
+import ClubDetails from "./routes/clubs.$slug";
+import ClubsLayout from "./routes/clubs";
+import Dashboard from "./routes/dashboard";
+import DashboardOverview from "./routes/dashboard.index";
+import DashboardRsvps from "./routes/dashboard.rsvps";
+import DashboardBookmarks from "./routes/dashboard.bookmarks";
+import EventsIndex from "./routes/events";
+import EventDetails from "./routes/events.$eventId";
+import Feed from "./routes/feed";
+import ForgotPassword from "./routes/forgot-password";
+import ResetPassword from "./routes/reset-password";
+import Settings from "./routes/settings";
+import PendingClubsAdmin from "./routes/admin.clubs.pending";
+import GalleryPage from "./routes/gallery";
 import { BreadcrumbProvider } from "@/components/BreadcrumbsContext";
 import AriaAnnouncer from "@/components/accessibility/AriaAnnouncer";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { LoginRecoveryModal } from "@/components/auth/LoginRecoveryModal";
+import { MfaChallengeGuard } from "@/components/auth/MfaChallengeGuard";
 function RemoteLoadingScreen() {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
@@ -121,6 +141,8 @@ const LostFound = lazy(() => import("./routes/lost-found"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
+const Recap = lazy(() => import("./routes/recap"));
+const MfaChallenge = lazy(() => import("./routes/mfa-challenge"));
 
 const EventsLayout = lazy(() => import("./pages/Events/EventsLayout"));
 const LazyEventsIndex = lazy(() => import("./pages/Events/EventsList"));
@@ -158,89 +180,92 @@ function AnimatedOutlet() {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<Layout />} errorElement={<RouteErrorBoundary />}>
-      <Route element={<AnimatedOutlet />}>
-        <Route index element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/certificates" element={<Certificates />} />
-        <Route path="/verify" element={<VerifyCertificate />} />
-
-        <Route path="/clubs" element={<ClubsLayout />}>
-          <Route index element={<ClubsIndex />} />
-          <Route path="new" element={<ClubNew />} />
-          <Route path=":slug" element={<ClubDetails />} />
-          <Route path=":slug/manage" element={<ClubManageRoute />} />
-          <Route path=":slug/notes" element={<ClubNotesRoute />} />
-          <Route path=":slug/articles" element={<ClubArticlesRoute />} />
-          <Route path=":slug/articles/:articleId" element={<ClubArticleDetailsRoute />} />
-        </Route>
-
-        <Route path="/print/charter/:slug" element={<PrintableCharter />} />
-
-        <Route path="/dashboard" element={<Dashboard />}>
-          <Route index element={<DashboardOverview />} />
-          <Route path="rsvps" element={<DashboardRsvps />} />
-          <Route path="bookmarks" element={<DashboardBookmarks />} />
-          <Route path="calendar" element={<DashboardCalendar />} />
-        </Route>
-
- feat/mobile-bottom-sheet
-        {/* Events Layout with Split-Screen desktop and Mobile Bottom Sheet */}
-
-        {/* Events — Split Screen Layout */}
-main
-        <Route
-          path="/events"
-          element={
-            <Suspense fallback={<PageFallback />}>
-              <EventsLayout />
-            </Suspense>
-          }
-        >
- feat/mobile-bottom-sheet
+      <Route element={<MfaChallengeGuard />}>
+        <Route element={<AnimatedOutlet />}>
+          <Route index element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/mfa-challenge" element={<MfaChallenge />} />
+          <Route path="/certificates" element={<Certificates />} />
+          <Route path="/verify" element={<VerifyCertificate />} />
+          <Route path="/clubs" element={<ClubsLayout />}>
+            <Route index element={<ClubsIndex />} />
+            <Route path="new" element={<ClubNew />} />
+            <Route path=":slug" element={<ClubDetails />} />
+            <Route path=":slug/manage" element={<ClubManageRoute />} />
+            <Route path=":slug/notes" element={<ClubNotesRoute />} />
+            <Route path=":slug/articles" element={<ClubArticlesRoute />} />
+            <Route path=":slug/articles/:articleId" element={<ClubArticleDetailsRoute />} />
+          </Route>
+          <Route path="/print/charter/:slug" element={<PrintableCharter />} />
+          <Route path="/dashboard" element={<Dashboard />}>
+            <Route index element={<DashboardOverview />} />
+            <Route path="rsvps" element={<DashboardRsvps />} />
+            <Route path="bookmarks" element={<DashboardBookmarks />} />
+            <Route path="calendar" element={<DashboardCalendar />} />
+          </Route>
+          feat/mobile-bottom-sheet
+          {/* Events Layout with Split-Screen desktop and Mobile Bottom Sheet */}
+          {/* Events — Split Screen Layout */}
+          main
           <Route
-            index
+            path="/events"
             element={
               <Suspense fallback={<PageFallback />}>
-                <EmptyState />
+                <EventsLayout />
               </Suspense>
             }
-          />
-
-          <Route index element={<EmptyState />} />
- main
-          <Route
-            path=":eventId"
-            element={
-              <Suspense fallback={<PageFallback />}>
-                <LazyEventDetails />
-              </Suspense>
-            }
-          />
+          >
+            feat/mobile-bottom-sheet
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <EmptyState />
+                </Suspense>
+              }
+            />
+            <Route index element={<EmptyState />} />
+            main
+            <Route
+              path=":eventId"
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <LazyEventDetails />
+                </Suspense>
+              }
+            />
+          </Route>
+          <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
+          <Route path="/events/:eventId/gantt" element={<EventGantt />} />
+          {/* Events Map View with clustering */}
+          <Route path="events/map" element={<EventsMapPage />} />
+          <Route path="challenge" element={<ChallengeArena />} />
+          <Route path="leaderboard" element={<Leaderboard />} />
+          <Route path="/feed" element={<Feed />} />
+          <Route path="/lost-found" element={<LostFound />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/recap" element={<Recap />} />
+          <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+          <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/messages" element={<MessagesRoute />} />
+          <Route path="/admin/reports" element={<AdminReportsPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/restore" element={<AdminRestorePage />} />
+          <Route path="/admin/dlq" element={<AdminDlqPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+          {/* Catch-all route for 404 errors */}
+          <Route path="*" element={<NotFound />} />
         </Route>
-
-        <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
-        <Route path="/events/:eventId/gantt" element={<EventGantt />} />
-        {/* Events Map View with clustering */}
-        <Route path="events/map" element={<EventsMapPage />} />
-        <Route path="challenge" element={<ChallengeArena />} />
-        <Route path="leaderboard" element={<Leaderboard />} />
 
         <Route path="/feed" element={<Feed />} />
-        <Route path="/lost-found" element={<LostFound />} />
+        <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
-        <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/messages" element={<MessagesRoute />} />
-        <Route path="/admin/reports" element={<AdminReportsPage />} />
-        <Route path="/admin/users" element={<AdminUsersPage />} />
-        <Route path="/admin/restore" element={<AdminRestorePage />} />
-        <Route path="/admin/dlq" element={<AdminDlqPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-        {/* Catch-all route for 404 errors */}
-        <Route path="*" element={<NotFound />} />
       </Route>
     </Route>,
   ),

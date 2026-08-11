@@ -18,6 +18,11 @@ import { getPresenceBadgeClass, usePresence } from "@/hooks/usePresence";
 import { UserProfileSkeleton } from "@/components/UserProfileSkeleton";
 import { HistoryTimeline, TimelineItem } from "@/components/profile/HistoryTimeline";
 import { AttendanceHeatmap } from "@/components/AttendanceHeatmap";
+import { ProgressRing } from "@/components/profile/ProgressRing";
+
+import { useState, useEffect } from "react";
+import { SharedClubsSection } from "@/components/profile/SharedClubsSection";
+import { getSharedClubs } from "@/lib/sharedClubs";
 
 function getInitials(name: string) {
   return name
@@ -32,6 +37,13 @@ function getInitials(name: string) {
 export default function Profile() {
   const { handle } = useParams();
   const supabase = createClient();
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user);
+    });
+  }, [supabase]);
 
   const {
     data: profile,
@@ -59,6 +71,19 @@ export default function Profile() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const isViewingOtherProfile = Boolean(
+    currentUser?.id && profile?.id && currentUser.id !== profile.id,
+  );
+
+  const { data: sharedClubs = [], isLoading: isLoadingSharedClubs } = useQuery({
+    queryKey: ["sharedClubs", currentUser?.id, profile?.id],
+    queryFn: async () => {
+      if (!currentUser?.id || !profile?.id) return [];
+      return getSharedClubs(supabase, currentUser.id, profile.id);
+    },
+    enabled: isViewingOtherProfile,
   });
 
   const { data: userClubs = [] } = useQuery({
@@ -185,24 +210,33 @@ export default function Profile() {
   if (isLoading) return <UserProfileSkeleton />;
   if (isError || !profile) return <NotFoundPage />;
 
+  const profileData = {
+    hasAvatar: !!profile.avatar_url,
+    hasBio: !!profile.bio,
+    hasMajor: !!profile.college,
+    hasInterests: !!profile.skills?.length,
+  };
+
   return (
     <SiteShell>
       <section className="border-b-2 border-black bg-cream px-4 py-12 md:px-6">
         <div className="mx-auto max-w-4xl flex flex-col md:flex-row items-center md:items-start gap-8">
-          <div className="relative h-32 w-32 shrink-0">
-            <Avatar className="h-32 w-32 border-4 border-black rounded-full">
-              <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
-              <AvatarFallback className="bg-lime text-3xl font-display font-bold">
-                {getInitials(profile.full_name || "Unknown User")}
-              </AvatarFallback>
-            </Avatar>
-            <span className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-white p-1">
-              <span
-                className={getPresenceBadgeClass(presenceMap[profile.id]?.status ?? "offline")}
-                aria-hidden="true"
-              />
-            </span>
-          </div>
+          <ProgressRing size={140} strokeWidth={6} className="shrink-0" profileData={profileData}>
+            <div className="relative h-full w-full">
+              <Avatar className="h-full w-full border-4 border-black rounded-full">
+                <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
+                <AvatarFallback className="bg-lime text-3xl font-display font-bold">
+                  {getInitials(profile.full_name || "Unknown User")}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-white p-1">
+                <span
+                  className={getPresenceBadgeClass(presenceMap[profile.id]?.status ?? "offline")}
+                  aria-hidden="true"
+                />
+              </span>
+            </div>
+          </ProgressRing>
 
           <div className="flex-1 text-center md:text-left space-y-4">
             <div>
@@ -291,6 +325,15 @@ export default function Profile() {
               </div>
             )}
           </div>
+
+          {/* Shared Clubs / Mutual Connections Section */}
+          {isViewingOtherProfile && (
+            <SharedClubsSection
+              clubs={sharedClubs}
+              isLoading={isLoadingSharedClubs}
+              targetUserName={profile.full_name || profile.handle}
+            />
+          )}
 
           {/* Upcoming Events Section */}
           <div className="space-y-6">
