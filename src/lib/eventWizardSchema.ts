@@ -86,6 +86,7 @@ export type TicketTier = z.infer<typeof ticketTierSchema>;
 
 export const ticketingStepBaseSchema = z.object({
   isPaid: z.boolean().default(false),
+  isResumeRequired: z.boolean().default(false),
   tickets: z.array(ticketTierSchema).max(20, "Maximum 20 ticket tiers allowed").default([]),
 });
 
@@ -173,6 +174,7 @@ export const eventWizardMasterSchema = z
     capacity: dateLocationStepBaseSchema.shape.capacity,
     // Ticketing
     isPaid: ticketingStepBaseSchema.shape.isPaid,
+    isResumeRequired: ticketingStepBaseSchema.shape.isResumeRequired,
     tickets: ticketingStepBaseSchema.shape.tickets,
     // Customizations
     coverImageUrl: customizationsStepSchema.shape.coverImageUrl,
